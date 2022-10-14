@@ -1,0 +1,116 @@
+---
+title: "KCpulseox"
+author: "Katherine Choi"
+date: "2022-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#https://www.rdocumentation.org/packages/bigrquery/versions/0.4.1
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dslabs)
+library(dplyr)
+library(tidyverse)
+library(bigrquery)
+library(comorbidity)
+library(dbplyr)
+library(ggthemes)
+library(pROC)
+library(rmarkdown)
+library(labelled)
+
+
+
+select <- dplyr::select
+
+
+options(scipen = 20)
+
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "hstpulseox",
+  dataset = "physionet-data.mimiciv_derived",
+  )
+
+#bq_auth(email="bigquerytor@hstpulseox.iam.gserviceaccount.com")
+#bq_auth(path= "/hstpulseox-5eceb4fb684e.json")
+bq_auth(path= `~/Documents/Rrepo/pulseox/hstpulseox-21724c014c39.json`)
+
+
+```
+
+```{sql, connection=con, output.var = "spo2all",echo = FALSE}
+
+SELECT subject_id, stay_id, charttime, resp_rate, spo2
+FROM `physionet-data.mimiciv_derived.vitalsign`
+
+```
+```{sql, connection=con, output.var = "po2all",echo = FALSE}
+
+SELECT subject_id, hadm_id, charttime, so2, po2, specimen
+FROM `physionet-data.mimiciv_derived.bg`
+WHERE specimen = "ART."
+
+```
+```{r}
+
+combodata <- merge(po2all, spo2all, by = c("subject_id", "charttime"))
+# inner join that keeps a row for each abg drawn result that has a spo2 with same subject_id
+
+```
+
+
+```{r}
+
+filt_subjectids <- c(unique(combodata$subject_id))
+
+```
+
+
+
+# 19,795 unique subject ID's
+
+
+# Create demographic table subject ID's
+
+
+```{sql, connection=con, output.var = "lods",echo = FALSE}
+
+SELECT subject_id, hadm_id, stay_id, LODS
+FROM `physionet-data.mimiciv_derived.lods`
+```
+
+
+```{sql, connection=con, output.var = "age",echo = FALSE}
+SELECT subject_id, hadm_id, age
+FROM `physionet-data.mimiciv_derived.age`
+```
+
+
+```{r}
+demographics <- left_join(lods, age, by=c("subject_id", "hadm_id"))
+
+```
+
+
+```{r}
+subjectdemog <- subset(demographics, subject_id %in% filt_subjectids)
+
+ggplot(subjectdemog, aes(x=age)) + geom_histogram(binwidth=5)
+
+```
+
+
+
+
+# Demographics of the cohort 
+M/F
+Race 
+Mean time on oxygen
+Age
+Ph
+Co2
+Duration of stay in icu
+
+
