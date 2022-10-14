@@ -75,10 +75,10 @@ filt_subjectids <- c(unique(combodata$subject_id))
 # Create demographic table subject ID's
 
 
-```{sql, connection=con, output.var = "lods",echo = FALSE}
+```{sql, connection=con, output.var = "icustaydetail",echo = FALSE}
 
-SELECT subject_id, hadm_id, stay_id, LODS
-FROM `physionet-data.mimiciv_derived.lods`
+SELECT *
+FROM `physionet-data.mimiciv_derived.icustay_detail`
 ```
 
 
@@ -89,7 +89,7 @@ FROM `physionet-data.mimiciv_derived.age`
 
 
 ```{r}
-demographics <- left_join(lods, age, by=c("subject_id", "hadm_id"))
+demographics <- left_join(icustaydetail, age, by=c("subject_id", "hadm_id"))
 
 ```
 
@@ -99,6 +99,21 @@ subjectdemog <- subset(demographics, subject_id %in% filt_subjectids)
 
 ggplot(subjectdemog, aes(x=age)) + geom_histogram(binwidth=5)
 
+subjectdemog %>%
+  group_by(group = cut(age, breaks = seq(0, max(age), 11))) %>%
+  summarise(n = n())
+
+subjectdemog %>% count(gender)
+
+subjectdemog %>% 
+  group_by(race) %>%
+  summarise(n = n()) %>%
+    mutate(Freq = n/sum(n))
+
+ggplot(subjectdemog, aes(x=los_icu)) + geom_histogram(binwidth=1)
+
+
+
 ```
 
 
@@ -107,11 +122,15 @@ ggplot(subjectdemog, aes(x=age)) + geom_histogram(binwidth=5)
 # Demographics of the cohort 
 M/F
 Race 
-Mean time on oxygen
 Age
+Duration of stay in icu
+Mean time on oxygen
 Ph
 Co2
-Duration of stay in icu
 
+# Compare demographics in patients with paired data avail, vs the raw population
+
+
+# Compare demographics in patients with different deltas between pao2 and sao2
 
 
